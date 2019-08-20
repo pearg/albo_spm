@@ -36,7 +36,7 @@ option_list <- list(
   make_option("--ctrl_depth",
               help = "Output control depth of coverage to output",
               action = "store_true",
-              default = FALSE)
+              default = FALSE),
   make_option("--save_rdata_file",
               metavar="RDATA_FILENAME",
               help = "RData filename to save objects for debugging",
