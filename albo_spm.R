@@ -187,7 +187,7 @@ if (! is.null(opts$sample_name)) {
   output <- data.frame(class=pred, probability=prob)
 }
 if (opts$ctrl_depth) {
-  output$ctrl_depth <- ctrl_depth
+  output$ctrl_depth <- round(ctrl_depth, 2)
 }
 write.table(output, file=output_filename, row.names=FALSE, sep="\t", 
             quote=FALSE)
