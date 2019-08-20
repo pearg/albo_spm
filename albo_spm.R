@@ -112,7 +112,7 @@ load(model_rdata)
 
 output_filename <- opts$output
 bam_output <- paste0(output_filename, tmp_suffix, ".bam")
-bt2_threads <- max(opt$threads - 1, 1)
+bt2_threads <- max(opts$threads - 1, 1)
 bt2_cmd <- sprintf("bowtie2 -p %d -x %s -1 %s -2 %s 2> /dev/null | samtools view -bS -f 3 - | samtools sort -o %s - && samtools index %s",
                    bt2_threads, bt2_index, opts$r1, opts$r2, bam_output, bam_output)
 
