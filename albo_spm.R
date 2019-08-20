@@ -113,8 +113,8 @@ load(model_rdata)
 output_filename <- opts$output
 bam_output <- paste0(output_filename, tmp_suffix, ".bam")
 bt2_threads <- max(opts$threads - 1, 1)
-bt2_cmd <- sprintf("bowtie2 -p %d -x %s -1 %s -2 %s 2> /dev/null | samtools view -bS -f 3 - | samtools sort -o %s - && samtools index %s",
-                   bt2_threads, bt2_index, opts$r1, opts$r2, bam_output, bam_output)
+bt2_cmd <- sprintf("bowtie2 -p %d -x %s -1 %s -2 %s 2> /dev/null | samtools view -bS -f 3 - | samtools sort -o %s -",
+                   bt2_threads, bt2_index, opts$r1, opts$r2, bam_output)
 
 message("Running command:\n  ", bt2_cmd)
 system(bt2_cmd)
@@ -151,12 +151,12 @@ ctrl_depth <- mean(feature_counts[,"coverage"], trim=0.05) * length(ctrl_regions
 
 # Quit if ctrl depth is less than 25 and print warning if ctrl depth is 
 # less than 500
+rm_cmd <- paste("rm", bam_output, bedtools_output)
 if (ctrl_depth < 25) {
-  rm_cmd <- paste("rm", bam_output, bedtools_output)
-  # system(rm_cmd)
+  system(rm_cmd)
   stop("Depth of sample is too low to predict sex classification. Exiting.")
 } else if (ctrl_depth < 500) {
-  warning("Depth of sample is low. Classification may in inaccurate.")
+  message("Warning: Depth of sample is low. Classification may in inaccurate.")
 }
 
 # Normalise counts
@@ -194,4 +194,4 @@ if (! is.null(opts$save_rdata_file)) {
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # REMOVE TMP FILES
 
-# system(rm_cmd)
+system(rm_cmd)
