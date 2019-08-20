@@ -33,6 +33,10 @@ option_list <- list(
   make_option("--sample_name",
               help = "Sample name",
               type = "character"),
+  make_option("--ctrl_depth",
+              help = "Output control depth of coverage to output",
+              action = "store_true",
+              default = FALSE)
   make_option("--save_rdata_file",
               metavar="RDATA_FILENAME",
               help = "RData filename to save objects for debugging",
@@ -181,6 +185,9 @@ if (! is.null(opts$sample_name)) {
   output <- data.frame(sample=opts$sample_name, class=pred, probability=prob)
 } else {
   output <- data.frame(class=pred, probability=prob)
+}
+if (opts$ctrl_depth) {
+  output$ctrl_depth <- ctrl_depth
 }
 write.table(output, file=output_filename, row.names=FALSE, sep="\t", 
             quote=FALSE)
