@@ -41,6 +41,10 @@ option_list <- list(
               metavar="RDATA_FILENAME",
               help = "RData filename to save objects for debugging",
               type = "character"),
+  make_option("--keep_tmp_files",
+              help = "Keep tmp files for debugging",
+              action = "store_true",
+              default = FALSE),
   make_option("--threads",
               metavar="N",
               help = "Number of threads to use [default: 2]",
@@ -54,7 +58,7 @@ option_list <- list(
 
 parser <- OptionParser(
   usage = paste("%prog [OPTIONS] --r1 [R1_FASTQ] --r2 [R2_FASTQ] --output [OUTPUT_FILENAME]\n",
-                "Predict sex of Aedes albopictus from dd-RAD sequencing ",
+                "Predict sex of Aedes albopictus from ddRAD sequencing ",
                 "(nlaIII and mluCI restriction enzymes).",
                 sep=""),
   option_list = option_list
@@ -152,12 +156,15 @@ stopifnot(feature_counts$region_names == rad_df$region_name)
 ctrl_regions <- rad_df[rad_df$type == "control", "region_name"]
 feature_regions <- rad_df[rad_df$type == "feature", "region_name"]
 ctrl_depth <- mean(feature_counts[,"coverage"], trim=0.05) * length(ctrl_regions)
+message("Sample control depth: ", round(ctrl_depth, 2))
 
 # Quit if ctrl depth is less than 25 and print warning if ctrl depth is 
 # less than 500
 rm_cmd <- paste("rm", bam_output, bedtools_output)
 if (ctrl_depth < 25) {
-  system(rm_cmd)
+  if (! opts$keep_tmp_files) {
+    system(rm_cmd)
+  }
   stop("Depth of sample is too low to predict sex classification. Exiting.")
 } else if (ctrl_depth < 500) {
   message("Warning: Depth of sample is low. Classification may in inaccurate.")
@@ -165,7 +172,7 @@ if (ctrl_depth < 25) {
 
 # Normalise counts
 norm_counts <- feature_counts$coverage / ctrl_depth * 1e3
-log_norm_counts <- log2(norm_counts + 1)
+log_norm_counts <- log2(norm_counts + 0.5)
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # RANDOM FOREST PREDICTION
@@ -201,4 +208,6 @@ if (! is.null(opts$save_rdata_file)) {
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # REMOVE TMP FILES
 
-system(rm_cmd)
+if (! opts$keep_tmp_files) {
+  system(rm_cmd)
+}
