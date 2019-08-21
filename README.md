@@ -80,3 +80,11 @@ albo_spm.R \
     --sample_name sample_01 \
     --threads 5
 ``` 
+
+Example output:
+```
+$ cat sample_01.sex.tsv
+
+sample	class	probability
+sample_01	F	0.955
+```
