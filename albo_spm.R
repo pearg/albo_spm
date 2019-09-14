@@ -155,7 +155,7 @@ stopifnot(feature_counts$region_names == rad_df$region_name)
 # Calculate sample depth using control regions
 ctrl_regions <- rad_df[rad_df$type == "control", "region_name"]
 feature_regions <- rad_df[rad_df$type == "feature", "region_name"]
-ctrl_depth <- mean(feature_counts[,"coverage"], trim=0.05) * length(ctrl_regions)
+ctrl_depth <- mean(feature_counts[ctrl_regions,"coverage"], trim=0.05) * length(ctrl_regions)
 message("Sample control depth: ", round(ctrl_depth, 2))
 
 # Quit if ctrl depth is less than 25 and print warning if ctrl depth is 
