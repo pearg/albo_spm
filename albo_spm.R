@@ -4,12 +4,12 @@
 # ALBOPICTUS SEX PREDICTION MODEL
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-VERSION <- "0.99"
+VERSION <- "0.99.1"
 
 suppressPackageStartupMessages({
   suppressWarnings({
     library(optparse, quietly=TRUE)
-    library(randomForest, quietly=TRUE)
+    library(e1071, quietly=TRUE)
     library(ps, quietly=TRUE)
   })
 })
@@ -86,7 +86,7 @@ if (opts$version) {
 
 # Require r1 r2 output filename to be in opts
 MISSING_OPTS_MESSAGE <- paste("Invalid command. --r1, --r2, and --output are",
-                         "required. Use --help for help.")
+                              "required. Use --help for help.")
 if (! all(c("r1", "r2", "output") %in% names(opts))) {
   message(MISSING_OPTS_MESSAGE)
   quit(status=2)
@@ -151,49 +151,82 @@ feature_counts <- read.table(bedtools_output, header=FALSE,
 tmp <- do.call(rbind, strsplit(feature_counts$scaffold_start_end, split="[:-]"))
 feature_counts$region_names <- paste(tmp[,1], tmp[,2], tmp[,3], sep="_")
 stopifnot(feature_counts$region_names == rad_df$region_name)
-
-# Calculate sample depth using control regions
 ctrl_regions <- rad_df[rad_df$type == "control", "region_name"]
 feature_regions <- rad_df[rad_df$type == "feature", "region_name"]
-ctrl_depth <- mean(feature_counts[ctrl_regions,"coverage"], trim=0.05) * length(ctrl_regions)
+
+# Estimate fragment size
+rad_df$counts <- feature_counts[,"coverage"]
+rad_df$log_counts <- log2(feature_counts[,"coverage"] + 1)
+tmp <- rad_df[rad_df$region_name %in% ctrl_regions,]
+fit <- lowess(x=tmp$fragment_length, y=tmp$log_counts, f=0.1)
+fragment_size_estimate <- fit$x[which.max(fit$y)]
+message("Fragment size estimate: ", fragment_size_estimate)
+
+# Print warning if fragment size is less than 270 bp
+if (fragment_size_estimate < 270) {
+  message(paste0("Warning: Fragment size estimate is low. Prediction best ",
+                 "works for fragment size ~300 bp."))
+}
+
+# Calculate normalisation factor based on fragment size estimate and the
+# geometric mean within a window around the fragment size estimate
+gm_mean = function(x, na.rm=TRUE){
+  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+}
+window_size <- 25
+ctrl_counts <- tmp[(tmp$fragment_length >= fragment_size_estimate - window_size) &
+                     (tmp$fragment_length <= fragment_size_estimate + window_size),
+                   "counts"]
+ctrl_depth <- gm_mean(ctrl_counts)
 message("Sample control depth: ", round(ctrl_depth, 2))
 
-# Quit if ctrl depth is less than 25 and print warning if ctrl depth is 
-# less than 500
+# Quit if ctrl depth is less than 1 and print warning if ctrl depth is 
+# less than 10
 rm_cmd <- paste("rm", bam_output, bedtools_output)
-if (ctrl_depth < 25) {
+if (ctrl_depth < 1) {
   if (! opts$keep_tmp_files) {
     system(rm_cmd)
   }
   stop("Depth of sample is too low to predict sex classification. Exiting.")
-} else if (ctrl_depth < 500) {
+} else if (ctrl_depth < 10) {
   message("Warning: Depth of sample is low. Classification may in inaccurate.")
 }
 
 # Normalise counts
-norm_counts <- feature_counts$coverage / ctrl_depth * 1e3
+feature_region_counts <- 
+  feature_counts[feature_counts$region_names %in% feature_regions,]
+norm_counts <- feature_region_counts[,"coverage"] / ctrl_depth * 1e3
 log_norm_counts <- log2(norm_counts + 0.5)
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-# RANDOM FOREST PREDICTION
+# SVM PREDICTION
 
 # Wrangle data
 x <- matrix(log_norm_counts, nrow=1)
-colnames(x) <- feature_counts$region_names
+colnames(x) <- feature_region_counts$region_names
 
 # Predict sex
-pred <- as.character(predict(mod, x))
-prob <- max(predict(mod, x, type="prob"))
+svm_pred <- predict(mod, x, probability=TRUE)
+pred <- as.character(svm_pred)
+pred <- ifelse(pred == "F", "Female", "Male")
+prob <- attr(svm_pred, "probabilities")
 message(sprintf("Sample was classified as %s with %0.1f%% probability.", 
-                pred, prob * 100))
+                pred, max(prob) * 100))
 
 # Output classification
 if (! is.null(opts$sample_name)) {
-  output <- data.frame(sample=opts$sample_name, class=pred, probability=prob)
+  output <- data.frame(sample=opts$sample_name, class=pred, 
+                       probability=round(max(prob), 4),
+                       prob_female=round(prob[,"F"], 4), 
+                       prob_male=round(prob[,"M"], 4))
 } else {
-  output <- data.frame(class=pred, probability=prob)
+  output <- data.frame(class=pred, 
+                       probability=round(max(prob), 4),
+                       prob_female=round(prob[,"F"], 4), 
+                       prob_male=round(prob[,"M"], 4))
 }
 if (opts$ctrl_depth) {
+  output$fragment_size_estimate <- fragment_size_estimate
   output$ctrl_depth <- round(ctrl_depth, 2)
 }
 write.table(output, file=output_filename, row.names=FALSE, sep="\t", 

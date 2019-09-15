@@ -17,7 +17,7 @@ Make sure that the following are accessable in your $PATH:
 The following R libraries are also required:
 
 * optparse
-* randomForest
+* e1071
 * ps
 
 Clone the github repository:
