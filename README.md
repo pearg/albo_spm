@@ -1,9 +1,9 @@
-# Albopictus sex prediction model
+# Ae. Albopictus sex prediction model
 
 ## Overview 
 
 This program reads a set of FASTQ files from a paired-end ddRAD sequencing 
-Aedes albopictus sample (nlaIII and mluCI restriction enzymes) and predicts 
+*Aedes albopictus* sample (nlaIII and mluCI restriction enzymes) and predicts 
 the sex of the sample.
 
 ## Installation
@@ -51,11 +51,14 @@ Options:
 	--sample_name=SAMPLE_NAME
 		Sample name
 
-	--ctrl_depth
-		Output control depth of coverage to output
+	--detailed_output
+		Output detailed results including estimated frgment size and control depth of coverage
 
 	--save_rdata_file=RDATA_FILENAME
 		RData filename to save objects for debugging
+
+	--keep_tmp_files
+		Keep tmp files for debugging
 
 	--threads=N
 		Number of threads to use [default: 2]
@@ -85,6 +88,6 @@ Example output:
 ```
 $ cat sample_01.sex.tsv
 
-sample	class	probability
-sample_01	F	0.955
+sample	class	probability	prob_female	prob_male
+sample_01	Female	0.9648	0.9648	0.0352
 ```
