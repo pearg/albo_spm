@@ -33,8 +33,9 @@ option_list <- list(
   make_option("--sample_name",
               help = "Sample name",
               type = "character"),
-  make_option("--ctrl_depth",
-              help = "Output control depth of coverage to output",
+  make_option("--detailed_output",
+              help = paste0("Output detailed results including estimated ",
+                            "frgment size and control depth of coverage"),
               action = "store_true",
               default = FALSE),
   make_option("--save_rdata_file",
@@ -180,15 +181,15 @@ ctrl_counts <- tmp[(tmp$fragment_length >= fragment_size_estimate - window_size)
 ctrl_depth <- gm_mean(ctrl_counts)
 message("Sample control depth: ", round(ctrl_depth, 2))
 
-# Quit if ctrl depth is less than 1 and print warning if ctrl depth is 
-# less than 10
+# Quit if ctrl depth is less than 2 and print warning if ctrl depth is 
+# less than 5
 rm_cmd <- paste("rm", bam_output, bedtools_output)
-if (ctrl_depth < 1) {
+if (ctrl_depth < 2) {
   if (! opts$keep_tmp_files) {
     system(rm_cmd)
   }
   stop("Depth of sample is too low to predict sex classification. Exiting.")
-} else if (ctrl_depth < 10) {
+} else if (ctrl_depth < 5) {
   message("Warning: Depth of sample is low. Classification may in inaccurate.")
 }
 
@@ -225,7 +226,7 @@ if (! is.null(opts$sample_name)) {
                        prob_female=round(prob[,"F"], 4), 
                        prob_male=round(prob[,"M"], 4))
 }
-if (opts$ctrl_depth) {
+if (opts$detailed_output) {
   output$fragment_size_estimate <- fragment_size_estimate
   output$ctrl_depth <- round(ctrl_depth, 2)
 }
