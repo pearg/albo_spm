@@ -4,11 +4,12 @@
 
 This program reads a set of FASTQ files from a paired-end ddRAD sequencing 
 *Aedes albopictus* sample (nlaIII and mluCI restriction enzymes) and predicts 
-the sex of the sample.
+the sex of the sample. Prediction works best for libraries prepared with
+fragment size selection of ~300 bp.
 
 ## Installation
 
-Make sure that the following are accessable in your $PATH:
+Make sure that the following are accessable in your `$PATH`:
 
 * samtools
 * bedtools
@@ -24,6 +25,12 @@ Clone the github repository:
 
 ```
 git clone https://github.com/pearg/albo_spm.git
+```
+
+[Optional] Add the directory to your `$PATH` environment variable:
+
+```
+export PATH=/path/to/cloned/repo/albo_spm:$PATH
 ```
 
 ## Usage
@@ -81,7 +88,7 @@ albo_spm.R \
     --r2 sample_01.R2.fq \
     --output sample_01.sex.tsv \
     --sample_name sample_01 \
-    --threads 5
+    --threads 8
 ``` 
 
 Example output:
